@@ -1,0 +1,35 @@
+# Quantum Eye Framework - Requirements
+# Quantum error mitigation framework based on the Unified Constraint Principle (UCP)
+
+# Core Scientific Computing
+numpy>=1.21.0
+scipy>=1.7.0
+
+# Quantum Computing - Core Qiskit
+qiskit>=1.0.0
+qiskit-aer>=0.13.0
+
+# Quantum Computing - IBM Runtime (Optional but recommended)
+# Uncomment the line below if you want to use real IBM Quantum hardware
+# qiskit-ibm-runtime>=0.20.0
+
+# Visualization
+matplotlib>=3.5.0
+
+# Logging and Type Hints (if not using Python 3.8+)
+typing-extensions>=4.0.0
+
+# Optional: Enhanced scientific computing capabilities
+# Uncomment these lines if you need additional functionality
+# sympy>=1.9.0  # For symbolic quantum state manipulation
+# pandas>=1.3.0  # For data analysis and results processing
+# seaborn>=0.11.0  # For advanced statistical visualizations
+# plotly>=5.0.0  # For interactive visualizations
+# jupyter>=1.0.0  # For notebook-based development
+# ipywidgets>=7.6.0  # For interactive widgets in notebooks
+
+# Development and Testing (optional)
+# pytest>=6.0.0
+# pytest-cov>=2.0.0
+# black>=21.0.0
+# flake8>=3.9.0
