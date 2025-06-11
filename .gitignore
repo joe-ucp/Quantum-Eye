@@ -163,3 +163,12 @@ cython_debug/
 *.png
 *.json
 *.csv
+*.pdf
+*.svg
+
+# Quantum credentials
+*.token
+*credentials*
+.qiskit/
+config.ini
+secrets.json
