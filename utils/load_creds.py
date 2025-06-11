@@ -38,14 +38,14 @@ logger = logging.getLogger(__name__)
 CREDENTIALS = {
     # Your IBM Quantum API Token (required)
     # Get this from: https://quantum-computing.ibm.com/account
-    "token": "YOUR_IBM_QUANTUM_TOKEN_HERE",
+    "token": "here_your_ibm_quantum_token",  # Replace with your token
     
     # Your IBM Quantum Instance (required)
     # Format examples:
     #   - IBM Cloud: "ibm-q/open/main" (free tier)
     #   - IBM Cloud: "ibm-q/academic/your-university" (academic)
     #   - IBM Quantum Network: "your-hub/your-group/your-project"
-    "instance": "ibm-q/open/main",
+    "instance": "crn ",
     
     # Channel type (usually don't need to change)
     # Options: "ibm_cloud" (default) or "ibm_quantum" (for premium)
