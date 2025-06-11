@@ -1,5 +1,5 @@
 """
-Quantum Eye Bell State Hardware Validation Test
+Quantum Eye Bell State Hardware Validation Test (Takes about 6 quantum seconds on IBM Brisbane)
 
 This test reproduces the Bell state multi-basis prediction experiment from the paper:
 "Quantum Eye: Complete Quantum State Recovery from Single-Basis Measurements"

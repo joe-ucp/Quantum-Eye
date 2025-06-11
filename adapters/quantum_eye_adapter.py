@@ -176,7 +176,7 @@ class QuantumEyeAdapter:
             else:
                 # Try to load saved account
                 logger.info("Attempting to initialize QiskitRuntimeService with saved account")
-                self.service = QiskitRuntimeService(name="new_instance")
+                self.service = QiskitRuntimeService()
             
             logger.info("QiskitRuntimeService initialized successfully")
             
