@@ -2,7 +2,7 @@
 QuantumEye Framework for Quantum Error Mitigation
 
 This module implements the core QuantumEye framework that uses frequency domain
-transformations based on the Unified Constraint Principle (UCP) to mitigate errors
+transformations based on the to mitigate errors
 in quantum states. Compatible with both simulated and real IBM Quantum hardware.
 """
 
