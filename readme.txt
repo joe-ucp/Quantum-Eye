@@ -7,8 +7,25 @@ cd quantum-eye
 # Install dependencies
 pip install -r requirements.txt
 
+🧪 Running Tests
+Bell State Validation
+Test the fundamental single-basis measurement recovery:
+bash# Simulator version (ideal conditions)
+python -m unittest .\tests\test_bell_sim.py  
+
 # Configure IBM Quantum credentials (optional, for real hardware)
 python utils/load_creds.py
+
+# Real hardware version
+python tests/test_bell_real.py
+100-Qubit GHZ Holographic Reconstruction
+Demonstrate large-scale quantum state reconstruction:
+bash# Run on IBM Brisbane (or simulator)
+python -m unittest .\tests\test_bell_real.py   
+python -m unittest .\tests\test_ghz_real.py
+
+
+
 Basic Usage
 pythonfrom quantum_eye import QuantumEye
 from adapters.quantum_eye_adapter import QuantumEyeAdapter
@@ -30,19 +47,6 @@ adapter.register_reference_circuit(circuit, "bell_state")
 result = adapter.execute_circuit(circuit, shots=1024, mitigation_enabled=True)
 
 print(f"Mitigated fidelity: {result['mitigation_result']['mitigated_fidelity']:.3f}")
-
-🧪 Running Tests
-Bell State Validation
-Test the fundamental single-basis measurement recovery:
-bash# Simulator version (ideal conditions)
-python tests/test_bell_sim.py
-
-# Real hardware version
-python tests/test_bell_real.py
-100-Qubit GHZ Holographic Reconstruction
-Demonstrate large-scale quantum state reconstruction:
-bash# Run on IBM Brisbane (or simulator)
-python tests/test_ghz_real.py
 
 
 🏗️ Architecture
