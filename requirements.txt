@@ -1,5 +1,5 @@
 # Quantum Eye Framework - Requirements
-# Quantum error mitigation framework based on the Unified Constraint Principle (UCP)
+# Quantum error mitigation framework
 
 # Core Scientific Computing
 numpy>=1.21.0
