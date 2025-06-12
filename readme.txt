@@ -1,7 +1,7 @@
 📋 Quick Start
 Installation
 bash# Clone the repository
-git clone https://github.com/your-username/quantum-eye.git
+git clone https://github.com/joe-ucp/Quantum-Eye.git
 cd quantum-eye
 
 # Install dependencies
