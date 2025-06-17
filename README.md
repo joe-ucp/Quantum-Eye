@@ -93,25 +93,5 @@
     repo/bell_hardware_validation
     You should see prediction accuracies >90% for both X and Y bases, confirming that single-basis measurements contain sufficient information for cross-basis prediction.
 
-        ## 📈 Performance Benchmarks
 
-    | System | Traditional | Quantum Eye | Improvement |
-    |--------|------------|-------------|-------------|
-    | 2-qubit Bell | 4096 shots × 3 bases | 256 shots × 1 basis | 48× |
-    | 100-qubit GHZ | Intractable | 8 qubits measured | ✓ Possible |
-
-        ## 🔬 Publications
-
-[Link to paper, arxiv, key equations] Joseph Roy and Jordan Ellison of UCP Technology LLC
-
-
-
-## 📄 Citation
-
-```bibtex
-@article{quantum-eye-2025,
-  title={Quantum Eye: Complete Quantum State Recovery from Single-Basis Measurements, Quantum Eye: Holographic State Reconstruction},
-  author={Roy, Joseph and Ellison, Jordan},
-  journal={arXiv preprint},
-  year={2025}
 }
