@@ -9,7 +9,22 @@ in quantum states. Compatible with both simulated and real IBM Quantum hardware.
 import logging
 from typing import Dict, Optional, Any, Union, List, Tuple
 import numpy as np
+import sys
+import qiskit
+import qiskit_ibm_runtime
+import qiskit_aer
+from datetime import datetime
 
+def check_license_validity():
+    """Verify license terms are met."""
+    # Date check - license expires March 11, 2026
+    if datetime.now() > datetime(2026, 3, 11):
+        raise RuntimeError("License expired. Visit https://github.com/joe-ucp/Quantum-Eye for renewal.")
+    
+    print(f"Quantum Eye License Valid - Qiskit {qiskit.__version__}")
+
+# Run check on import
+check_license_validity()
 # Import core components
 from core.ucp import UCPIdentity
 from core.transform import UcpFrequencyTransform

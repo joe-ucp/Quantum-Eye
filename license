@@ -1,49 +1,48 @@
-LICENSE
-PROPRIETARY SOFTWARE LICENSE
+QUANTUM EYE LICENSE - IBM HARDWARE ONLY
+Version 1.0
 
-Copyright (c) 2025 UCP Technology LLC. All rights reserved.
+Copyright (c) 2025 Joseph Roy and Jordan Ellison, UCP Technology LLC
+Patent Pending: U.S. Provisional Patent Application No. 63/792,468
 
-This software and associated documentation files (the "Software") are the 
-proprietary and confidential property of UCP Technology LLC.
+GRANT OF LICENSE:
+Subject to the terms below, anyone may use this Software for any purpose until March 11, 2026.
 
-NOTICE: This Software is licensed, not sold. This Software is protected by 
-copyright laws and international copyright treaties, as well as other 
-intellectual property laws and treaties.
+MANDATORY REQUIREMENTS:
+1. This Software must ONLY be used with IBM Quantum hardware or IBM quantum simulators.
+2. All use must comply with applicable laws and regulations.
+3. This license automatically terminates on March 11, 2026.
 
-LICENSE RESTRICTIONS:
+For use outside these terms, contact: legal@ucptechnology.ai
 
-1. NO PERMISSION TO USE: No permission is granted to use, copy, modify, merge, 
-   publish, distribute, sublicense, and/or sell copies of the Software without 
-   express written permission from UCP Technology LLC.
+DISCLAIMER OF WARRANTIES:
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. IN NO EVENT SHALL UCP TECHNOLOGY LLC
+OR ITS AFFILIATES BE LIABLE FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE.
 
-2. NO REVERSE ENGINEERING: You may not reverse engineer, decompile, or 
-   disassemble the Software.
+LIMITATION OF LIABILITY:
+IN NO EVENT SHALL UCP TECHNOLOGY LLC'S TOTAL LIABILITY EXCEED $100. UNDER NO
+CIRCUMSTANCES SHALL UCP TECHNOLOGY LLC BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, CONSEQUENTIAL, OR PUNITIVE DAMAGES.
 
-3. CONFIDENTIALITY: The Software contains trade secrets and proprietary 
-   know-how that belong to UCP Technology LLC and you shall not disclose 
-   the Software to any third party.
+INDEMNIFICATION:
+You agree to indemnify, defend, and hold harmless UCP Technology LLC from any claims,
+damages, or expenses arising from your use of the Software.
 
-4. NO WARRANTY: THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
-   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF 
-   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+TERMINATION:
+This license terminates automatically on March 11, 2026, or upon any breach of
+these terms. Upon termination, all rights granted cease immediately.
 
-5. LIMITATION OF LIABILITY: IN NO EVENT SHALL UCP TECHNOLOGY LLC OR ITS 
-   AFFILIATES BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN 
-   AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
-   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+GOVERNING LAW:
+This license is governed by the laws of Tennessee, USA, without regard to conflict
+of law principles.
 
-To request permission to use this Software, please contact:
+ENTIRE AGREEMENT:
+This license constitutes the entire agreement. Any modifications must be in writing
+and signed by UCP Technology LLC.
 
-UCP Technology LLC
-Email: legal@ucptechnology.ai
-Subject: Quantum Eye License Request
+ATTRIBUTION REQUIRED:
+"Quantum Eye created by Joseph Roy and Jordan Ellison, UCP Technology LLC"
 
-Any use of this Software without written permission from UCP Technology LLC 
-constitutes copyright infringement and may subject you to civil and criminal 
-penalties.
-
-Patent Pending. Additional patents may be pending or issued in the U.S. and 
-other countries.
-
----
-
+Contact: legal@ucptechnology.ai
