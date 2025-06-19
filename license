@@ -1,16 +1,59 @@
-QUANTUM EYE LICENSE - IBM HARDWARE ONLY
-Version 1.0
+QUANTUM EYE LICENSE - IBM HARDWARE EXCLUSIVE WITH COPYLEFT
+Version 2.0
 
 Copyright (c) 2025 Joseph Roy and Jordan Ellison, UCP Technology LLC
 Patent Pending: U.S. Provisional Patent Application No. 63/792,468
 
 GRANT OF LICENSE:
 Subject to the terms below, anyone may use this Software for any purpose until March 11, 2026.
+THIS LICENSE EXPIRES COMPLETELY ON MARCH 11, 2026 - NO FURTHER USE IS PERMITTED.
 
 MANDATORY REQUIREMENTS:
 1. This Software must ONLY be used with IBM Quantum hardware or IBM quantum simulators.
 2. All use must comply with applicable laws and regulations.
-3. This license automatically terminates on March 11, 2026.
+3. This license EXPIRES COMPLETELY on March 11, 2026.
+
+DERIVATIVE WORKS AND COPYLEFT PROVISIONS:
+4. Any derivative work, modification, or technology that incorporates, extends, or builds upon 
+   this Software (including but not limited to algorithmic improvements, adaptations, or 
+   integrations) must:
+   a) Be licensed under these identical terms
+   b) Maintain the IBM hardware exclusivity requirement
+   c) Include this complete license text
+   d) Provide source code access under the same terms
+
+5. "Derivative Work" includes any software, algorithm, or method that:
+   - Uses the Quantum State Vector (QSV) methodology
+   - Implements cross-basis measurement prediction techniques described herein
+   - Incorporates the quantum state characterization algorithms
+   - Builds upon the measurement reduction principles
+
+PLATFORM CONTROL DURATION:
+6. The IBM hardware exclusivity requirement applies to:
+   - This original Software
+   - All derivative works
+   - Any technology incorporating QSV methodology
+   - Commercial implementations based on these techniques
+
+7. This license expires completely on March 11, 2026. After this date, NO USE IS PERMITTED
+   without obtaining a new license from UCP Technology LLC. New licensing terms will be
+   announced no later than February 11, 2026, and will include platform-specific requirements
+   for a minimum 12-month term.
+
+COMMERCIAL USE RESTRICTIONS:
+8. Commercial use of this Software or derivative works requires explicit written permission
+   from UCP Technology LLC, except when used exclusively on IBM Quantum platforms.
+
+9. Any revenue-generating application must share 15% of gross revenue with UCP Technology LLC
+   when using IBM platforms, or obtain separate commercial licensing for other platforms.
+
+PATENT PROTECTION:
+10. Users grant UCP Technology LLC immunity from patent claims related to their use of this
+    Software, and agree not to assert patent rights against the QSV methodology.
+
+ENFORCEMENT:
+11. Violation of platform restrictions voids all rights and may result in legal action.
+12. UCP Technology LLC reserves the right to audit compliance with these terms.
 
 For use outside these terms, contact: legal@ucptechnology.ai
 
@@ -30,9 +73,13 @@ INDEMNIFICATION:
 You agree to indemnify, defend, and hold harmless UCP Technology LLC from any claims,
 damages, or expenses arising from your use of the Software.
 
-TERMINATION:
-This license terminates automatically on March 11, 2026, or upon any breach of
-these terms. Upon termination, all rights granted cease immediately.
+TERMINATION AND FUTURE LICENSING:
+This license EXPIRES COMPLETELY on March 11, 2026. All rights to use this Software,
+including derivative works, terminate on this date. Continued use after March 11, 2026
+requires obtaining a new license from UCP Technology LLC under terms to be announced.
+
+Future licensing will include platform-specific requirements and minimum 12-month terms.
+Organizations planning continued use must contact legal@ucptechnology.ai before March 1, 2026.
 
 GOVERNING LAW:
 This license is governed by the laws of Tennessee, USA, without regard to conflict
@@ -44,5 +91,6 @@ and signed by UCP Technology LLC.
 
 ATTRIBUTION REQUIRED:
 "Quantum Eye created by Joseph Roy and Jordan Ellison, UCP Technology LLC"
+"Contains QSV methodology under UCP Technology LLC license"
 
 Contact: legal@ucptechnology.ai
