@@ -54,7 +54,7 @@ try:
         from qiskit_ibm_runtime.fake_provider import (
             FakeManilaV2, FakeLagosV2, FakeBelemV2, FakeQuitoV2,
             FakeMontrealV2, FakeMumbaiV2, FakeCairoV2,
-            FakeWashingtonV2, FakeKyotoV2, FakeTorinoV2
+            FakeWashingtonV2, FakeTorinoV2
         )
         print(f"IBM Quantum Runtime fake backends imported successfully")
     except ImportError as e:
@@ -239,7 +239,7 @@ class QuantumEyeAdapter:
                     from qiskit_ibm_runtime.fake_provider import (
                         FakeManilaV2, FakeLagosV2, FakeBelemV2, FakeQuitoV2,
                         FakeMontrealV2, FakeMumbaiV2, FakeCairoV2,
-                        FakeWashingtonV2, FakeKyotoV2
+                        FakeWashingtonV2, 
                     )
                     
                     # Map of class names to actual classes
@@ -252,7 +252,6 @@ class QuantumEyeAdapter:
                         "FakeMumbaiV2": FakeMumbaiV2,
                         "FakeCairoV2": FakeCairoV2,
                         "FakeWashingtonV2": FakeWashingtonV2,
-                        "FakeKyotoV2": FakeKyotoV2
                     }
                     
                     # Try to get the class and instantiate it

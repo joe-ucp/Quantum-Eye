@@ -34,7 +34,7 @@ try:
     from qiskit_ibm_runtime.fake_provider import (
         FakeManilaV2, FakeLagosV2, FakeBelemV2, FakeQuitoV2,
         FakeMontrealV2, FakeMumbaiV2, FakeCairoV2,
-        FakeWashingtonV2, FakeKyotoV2
+        FakeWashingtonV2, 
     )
     HAS_IBM_RUNTIME = True
 except ImportError:
@@ -48,7 +48,6 @@ except ImportError:
     FakeMumbaiV2 = None
     FakeCairoV2 = None
     FakeWashingtonV2 = None
-    FakeKyotoV2 = None
-
+    
 # Configure logging
 logger = logging.getLogger(__name__)
