@@ -163,7 +163,7 @@ cython_debug/
 *.png
 *.json
 *.csv
-*.pdf
+*.txt
 *.svg
 
 # Quantum credentials
