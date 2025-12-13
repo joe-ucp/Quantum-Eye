@@ -1,0 +1,16 @@
+# Override to run QE runner with the ffsim compose base.
+services:
+  notebook:
+    image: quay.io/jupyter/minimal-notebook:python-3.11
+    build: null
+    environment:
+      - ADAPTER_PATH
+      - FFSIM_PIP_EXTRA
+      - PYTHONPATH=/home/jovyan/qe-runner:/home/jovyan/persistent-volume:/home/jovyan/work
+    volumes:
+      - ./ffsim/persistent-volume:/home/jovyan/persistent-volume
+      - ./adapters:/home/jovyan/work/adapters
+      - ./qe-runner:/home/jovyan/qe-runner
+    entrypoint: ["python", "/home/jovyan/qe-runner/run_experiment.py"]
+    command: []
+

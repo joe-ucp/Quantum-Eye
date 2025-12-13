@@ -135,6 +135,9 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
+# Cursor workspace data
+.cursor/
+
 # mkdocs documentation
 /site
 
@@ -160,11 +163,15 @@ cython_debug/
 #.idea/
 
 # Quantum Eye Results
-*.png
-*.json
-*.csv
-*.txt
-*.svg
+# Keep source code; ignore generated artifacts.
+artifacts/
+ffsim/persistent-volume/Quantum-eye-test/
+ffsim/persistent-volume/artifacts/
+ffsim/persistent-volume/archive/
+**/*.png
+**/*.csv
+**/*.txt
+**/*.svg
 
 # Quantum credentials
 *.token
@@ -172,3 +179,14 @@ cython_debug/
 .qiskit/
 config.ini
 secrets.json
+
+# files
+*.zip
+*.pdf
+
+# Cursor IDE (ensure fully ignored)
+.cursor/
+**/.cursor/
+
+# Allow specific MD files (experiment docs)
+!EXPERIMENT_REPRO.md
