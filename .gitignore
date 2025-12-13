@@ -172,3 +172,12 @@ cython_debug/
 .qiskit/
 config.ini
 secrets.json
+
+# Cursor IDE
+.cursor/
+
+# Reports folder
+reports/
+
+# Markdown files
+*.md
