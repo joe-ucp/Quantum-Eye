@@ -19,14 +19,14 @@ import os
 import json
 import logging
 import unittest
-from utils.visualization import VisualizationHelper
+from quantum_eye.utils.visualization import VisualizationHelper
 from typing import Dict, List, Tuple, Any, Optional
 
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Statevector
 
 from quantum_eye import QuantumEye
-from adapters.quantum_eye_adapter import QuantumEyeAdapter
+from quantum_eye.adapters.quantum_eye_adapter import QuantumEyeAdapter
 
 # Configure logging
 logging.basicConfig(

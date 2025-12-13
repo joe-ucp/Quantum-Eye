@@ -1,8 +1,8 @@
 import numpy as np
 from typing import Dict, List, Tuple, Union, Optional, Any
 
-from core.ucp import UCPIdentity
-from core.transform import UcpFrequencyTransform
+from .ucp import UCPIdentity
+from .transform import UcpFrequencyTransform
 
 
 class ResonanceDetector:

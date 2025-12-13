@@ -36,7 +36,7 @@ def main() -> None:
     np.random.seed(123)
 
     try:
-        from adapters.noise_models import get_noise_model_by_type  # type: ignore
+        from quantum_eye.adapters.noise_models import get_noise_model_by_type  # type: ignore
     except Exception as exc:  # pragma: no cover - diagnostic output
         print(json.dumps({"import": f"failed: {exc}"}))
         sys.exit(1)

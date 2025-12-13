@@ -26,11 +26,11 @@ def check_license_validity():
 # Run check on import
 check_license_validity()
 # Import core components
-from core.ucp import UCPIdentity
-from core.transform import UcpFrequencyTransform
-from core.detection import ResonanceDetector
-from core.reconstruction import BaseReconstructor
-from core.error_mitigation import ErrorMitigator
+from .core.ucp import UCPIdentity
+from .core.transform import UcpFrequencyTransform
+from .core.detection import ResonanceDetector
+from .core.reconstruction import BaseReconstructor
+from .core.error_mitigation import ErrorMitigator
 
 # Configure logging
 logger = logging.getLogger(__name__)

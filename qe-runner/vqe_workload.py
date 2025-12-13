@@ -14,7 +14,7 @@ if not logger.handlers:
 logger.setLevel(logging.INFO)
 
 try:
-    from adapters.noise_models import get_noise_model_by_type
+    from quantum_eye.adapters.noise_models import get_noise_model_by_type
     _NOISE_IMPORT_STATUS = "ok"
     logger.info("adapters.noise_models import succeeded")
 except Exception as exc:  # pragma: no cover - adapter optional

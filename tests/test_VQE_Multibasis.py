@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info import Statevector, Operator, SparsePauliOp
 from qiskit.circuit import Parameter
-from adapters.quantum_eye_adapter import QuantumEyeAdapter
+from quantum_eye.adapters.quantum_eye_adapter import QuantumEyeAdapter
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
