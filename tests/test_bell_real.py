@@ -27,7 +27,7 @@ from qiskit import QuantumCircuit
 from qiskit.quantum_info import Statevector
 
 from quantum_eye import QuantumEye
-from adapters.quantum_eye_adapter import QuantumEyeAdapter
+from quantum_eye.adapters.quantum_eye_adapter import QuantumEyeAdapter
 
 # Configure logging
 logging.basicConfig(

@@ -31,7 +31,7 @@ from qiskit_aer.noise import NoiseModel
 
 # Import noise models
 try:
-    from adapters.noise_models import get_noise_model_by_type
+    from .noise_models import get_noise_model_by_type
 except ImportError:
     # Fallback for missing noise_models module
     def get_noise_model_by_type(noise_type, noise_level, options=None):

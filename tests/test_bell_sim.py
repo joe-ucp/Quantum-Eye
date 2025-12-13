@@ -28,8 +28,8 @@ from qiskit_aer import AerSimulator
 
 # Import Quantum Eye components
 from quantum_eye import QuantumEye
-from adapters.quantum_eye_adapter import QuantumEyeAdapter
-from utils.visualization import VisualizationHelper
+from quantum_eye.adapters.quantum_eye_adapter import QuantumEyeAdapter
+from quantum_eye.utils.visualization import VisualizationHelper
 
 # Configure logging with detailed format
 logging.basicConfig(
