@@ -4,6 +4,7 @@ import logging
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
+from pathlib import Path
 from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit_aer import AerSimulator
@@ -321,6 +322,87 @@ def _expectation_qe(
     return energy, features
 
 
+def _expectation_cached(
+    probs: np.ndarray,
+    model: LiHModel,
+    cache: "ConstraintCache",
+    cache_threshold: float = 0.1,
+    smoothing_window: float = 45.0,
+    uniform_floor: float = 0.1,
+) -> Tuple[float, Dict[str, float]]:
+    """
+    Cache-aware expectation computation. Uses cached bounds to skip/reuse measurements.
+    
+    Args:
+        probs: Probability distribution from Z-basis measurements
+        model: LiH model
+        cache: ConstraintCache with measurement bounds
+        cache_threshold: CI width threshold below which to use cached estimate
+        smoothing_window: QE smoothing parameter (if using QE for remaining terms)
+        uniform_floor: QE uniform floor parameter
+    
+    Returns:
+        (energy, features_dict) where features includes shot usage stats
+    """
+    from constraint_cache import ConstraintCache
+    
+    energy = 0.0
+    terms_skipped = 0
+    terms_cached = 0
+    terms_measured = 0
+    shots_saved = 0
+    
+    # Enhanced probabilities for off-diagonal terms (if needed)
+    enhanced = _quantum_eye_enhance(
+        probs, smoothing_window=smoothing_window, uniform_floor=uniform_floor
+    )
+    amps = np.sqrt(enhanced + 1e-12)
+    
+    for label, coeff, is_diag, mask, mat in zip(
+        model.labels, model.coeffs, model.diag_terms, model.diag_masks, model.pauli_mats
+    ):
+        # Check if term is forbidden (provably zero)
+        if label in cache.forbidden_terms:
+            terms_skipped += 1
+            # Energy contribution is 0, skip
+            continue
+        
+        # Check if term has cached bounds
+        if label in cache.measurement_bounds:
+            lo, hi = cache.measurement_bounds[label]
+            ci_width = hi - lo
+            
+            # If CI is tight enough, use cached estimate (midpoint)
+            if ci_width < cache_threshold:
+                cached_val = (lo + hi) / 2.0
+                energy += coeff * cached_val
+                terms_cached += 1
+                # Estimate shots saved (would need to measure this term)
+                shots_saved += 1  # Simplified: 1 term = 1 measurement
+                continue
+        
+        # Otherwise, measure term normally
+        terms_measured += 1
+        if is_diag:
+            # Diagonal term: use probs directly
+            term_val = float(np.dot(probs, mask))
+        else:
+            # Off-diagonal term: use enhanced state
+            term_val = float(np.real(np.conj(amps) @ (mat @ amps)))
+        energy += coeff * term_val
+    
+    features = {
+        "estimator": "cached",
+        "terms_skipped": terms_skipped,
+        "terms_cached": terms_cached,
+        "terms_measured": terms_measured,
+        "shots_saved_estimate": shots_saved,
+        "cache_threshold": cache_threshold,
+    }
+    
+    return energy, features
+
+
 def _reconstruct_psqe_state(
     probs: np.ndarray, smoothing_window: float, uniform_floor: float
 ) -> np.ndarray:
@@ -466,6 +548,133 @@ def _spsa_schedule(a0: float, c0: float, k: int) -> Tuple[float, float]:
     return ak, ck
 
 
+def build_lih_cache(
+    seed: int = 12345,
+    shots: int = 8192,
+    protocol: str = "z",
+    source: str = "exact",
+    vqe_theta: np.ndarray | None = None,
+) -> "ConstraintCache":
+    """
+    Build constraint cache from LiH ground state measurements.
+    
+    Args:
+        seed: Random seed for measurement sampling
+        shots: Number of shots for measurements
+        protocol: "z" for Z-basis only, "z+x" for Z and X rotations
+        source: "exact" for exact ground state, "vqe" for VQE-produced state
+        vqe_theta: Parameter vector for VQE state (required if source="vqe")
+    
+    Returns:
+        ConstraintCache with term_support, measurement_bounds, symmetry_sectors
+    """
+    from constraint_cache import ConstraintCache
+    from hamiltonian_elimination import (
+        expectation_from_state,
+        measurement_bounds_from_state,
+        measurement_bounds_from_counts,
+        sample_z_counts,
+        parity_from_state,
+        parity_from_counts,
+    )
+    
+    rng = np.random.default_rng(seed)
+    model = _get_model()
+    num_qubits = 6
+    
+    # Get ground state
+    if source == "exact":
+        ground_state = model.ground_state
+    elif source == "vqe":
+        if vqe_theta is None:
+            raise ValueError("vqe_theta required when source='vqe'")
+        state = Statevector.from_instruction(_ansatz(vqe_theta))
+        ground_state = np.array(state.data)
+    else:
+        raise ValueError(f"Unknown source: {source}")
+    
+    # Get all LiH terms
+    lih_terms = _lih_terms()
+    term_labels = [label for (label, _) in lih_terms]
+    term_support = set(term_labels)
+    
+    # Sample Z-basis measurements
+    z_counts = sample_z_counts(ground_state, shots=shots, n_qubits=num_qubits, rng=rng)
+    
+    # Compute measurement bounds for diagonal terms (Z-basis)
+    diag_observables = [label for label in term_labels if "X" not in label and "Y" not in label]
+    measurement_bounds, measured_expectations = measurement_bounds_from_counts(
+        z_counts, diag_observables, shots
+    )
+    
+    # If protocol includes X rotations, add bounds for X/Y terms
+    if protocol == "z+x":
+        # Sample X-basis measurements (H on all qubits, then measure Z)
+        qc_x = QuantumCircuit(num_qubits)
+        for q in range(num_qubits):
+            qc_x.h(q)
+        qc_x.measure_all()
+        
+        # Prepare state and sample
+        state_x = Statevector(ground_state)
+        state_x = state_x.evolve(qc_x)
+        probs_x = np.abs(state_x.data) ** 2
+        probs_x = probs_x / probs_x.sum()
+        outcomes_x = rng.choice(len(probs_x), size=shots, p=probs_x)
+        x_counts: Dict[str, int] = {}
+        for idx in outcomes_x:
+            bitstring = format(idx, f"0{num_qubits}b")
+            x_counts[bitstring] = x_counts.get(bitstring, 0) + 1
+        
+        # Get X/Y observables
+        offdiag_observables = [label for label in term_labels if "X" in label or "Y" in label]
+        # For X-basis measurements, we can compute expectations for X terms
+        x_observables = [label for label in offdiag_observables if "Y" not in label]
+        if x_observables:
+            x_bounds, x_expectations = measurement_bounds_from_counts(
+                x_counts, x_observables, shots
+            )
+            measurement_bounds.update(x_bounds)
+            measured_expectations.update(x_expectations)
+    
+    # Compute exact expectations for all terms (for reference)
+    exact_expectations = {
+        label: expectation_from_state(label, ground_state) for label in term_labels
+    }
+    
+    # Determine parity symmetry
+    measured_parity = parity_from_counts(z_counts, shots)
+    exact_parity = parity_from_state(ground_state, num_qubits)
+    parity_sector = measured_parity if measured_parity in ("even", "odd") else exact_parity
+    
+    # Identify forbidden terms (provably zero by symmetry or structure)
+    forbidden_terms: set[str] = set()
+    # Terms that are identically zero can be added here if known
+    
+    # Build cache
+    cache = ConstraintCache(
+        term_support=term_support,
+        forbidden_terms=forbidden_terms,
+        symmetry_sectors={"parity": parity_sector} if parity_sector in ("even", "odd") else {},
+        reachability={},  # Not used for LiH cache
+        measurement_bounds=measurement_bounds,
+        metadata={
+            "n_qubits": num_qubits,
+            "shots": shots,
+            "seed": seed,
+            "protocol": protocol,
+            "source": source,
+            "lih_instance_id": hash(tuple(sorted(term_labels))),
+            "num_terms": len(term_labels),
+            "num_diag_terms": len(diag_observables),
+            "measured_parity": measured_parity,
+            "exact_parity": exact_parity,
+        },
+    )
+    
+    return cache
+
+
 def _prepare_noise_model(
     noise_type: str | None, noise_level: float, num_qubits: int
 ) -> Tuple[Any, Dict[str, Any]]:
@@ -539,6 +748,7 @@ def run_vqe_lih(
     estimator: str = "qe",
     noise_type: str | None = None,
     noise_level: float = 0.0,
+    cache_path: Path | None = None,
 ) -> VQEResult:
     """
     Shot-based VQE on a fixed 6-qubit LiH Hamiltonian.
@@ -546,11 +756,37 @@ def run_vqe_lih(
     Baseline: estimates energy from Z-basis counts using only diagonal terms.
     Adapter: applies Quantum Eye frequency smoothing + state estimation to include
     off-diagonal contributions from single-basis counts.
+    
+    If cache_path is provided, uses cache-aware estimator to skip/reuse measurements.
     """
+    from constraint_cache import ConstraintCache
+    
     model = _get_model()
     rng = np.random.default_rng(seed)
     num_params = layers * 6
     theta = rng.normal(scale=0.2, size=num_params)
+    
+    # Load cache if provided (must be defined before nested function to be captured)
+    _cache: ConstraintCache | None = None
+    if cache_path is not None:
+        # Normalize path: handle both string and Path, and resolve forward slashes on Windows
+        cache_path_normalized = Path(cache_path)
+        if not cache_path_normalized.is_absolute():
+            # If relative, try to resolve it
+            cache_path_normalized = cache_path_normalized.resolve()
+        logger.info(f"[cache] attempting to load cache from: {cache_path_normalized}")
+        logger.info(f"[cache] path exists: {cache_path_normalized.exists()}")
+        if not cache_path_normalized.exists():
+            logger.warning(f"[cache] cache file not found: {cache_path_normalized}, proceeding without cache")
+        else:
+            try:
+                _cache = ConstraintCache.from_json(cache_path_normalized)
+                logger.info(f"[cache] loaded cache from {cache_path_normalized}")
+                logger.info(f"[cache] term_support: {len(_cache.term_support)} terms")
+                logger.info(f"[cache] measurement_bounds: {len(_cache.measurement_bounds)} bounds")
+            except Exception as exc:
+                logger.warning(f"[cache] failed to load cache: {exc}, proceeding without cache")
+    cache = _cache  # Make available to nested function
 
     noise_model, noise_info = _prepare_noise_model(
         noise_type=noise_type, noise_level=noise_level, num_qubits=6
@@ -582,7 +818,7 @@ def run_vqe_lih(
     t0 = time.perf_counter()
 
     def eval_energy(current_theta: np.ndarray) -> Tuple[float, Dict[str, float]]:
-        nonlocal total_shots
+        nonlocal total_shots, cache
         if mode == "adapter" and estimator == "full_baseline":
             raise ValueError("full_baseline estimator is not valid in adapter mode")
 
@@ -593,6 +829,23 @@ def run_vqe_lih(
             )
             total_shots += shots
             probs = _counts_to_prob(counts, num_qubits=6)
+
+            # Check for cache-aware estimators
+            if cache is not None and estimator in ("qe_cached", "baseline_cached"):
+                logger.info(f"[cache] using cache-aware estimator: {estimator}")
+                energy_val, feats = _expectation_cached(
+                    probs,
+                    model,
+                    cache,
+                    cache_threshold=0.1,
+                    smoothing_window=qe_smoothing_window,
+                    uniform_floor=qe_uniform_floor,
+                )
+                feats["estimator"] = estimator
+                feats["counts"] = counts
+                return energy_val, feats
+            elif estimator in ("qe_cached", "baseline_cached"):
+                logger.warning(f"[cache] cache-aware estimator {estimator} requested but cache is None, falling back to baseline")
 
             if estimator == "psqe":
                 energy_val, feats = _expectation_psqe(probs, model)
@@ -641,6 +894,21 @@ def run_vqe_lih(
         )
         total_shots += shots
         probs = _counts_to_prob(counts, num_qubits=6)
+        
+        # Check for cache-aware baseline estimator
+        if cache is not None and estimator == "baseline_cached":
+            energy_val, feats = _expectation_cached(
+                probs,
+                model,
+                cache,
+                cache_threshold=0.1,
+                smoothing_window=qe_smoothing_window,
+                uniform_floor=qe_uniform_floor,
+            )
+            feats["estimator"] = "baseline_cached"
+            feats["counts"] = counts
+            return energy_val, feats
+        
         energy_val = _expectation_baseline(probs, model)
         return energy_val, {"estimator": "baseline", "counts": counts}
 

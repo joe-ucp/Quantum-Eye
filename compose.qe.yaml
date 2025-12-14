@@ -2,7 +2,6 @@
 services:
   notebook:
     image: quay.io/jupyter/minimal-notebook:python-3.11
-    build: null
     environment:
       - ADAPTER_PATH
       - FFSIM_PIP_EXTRA

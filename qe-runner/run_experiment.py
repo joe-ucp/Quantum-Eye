@@ -447,9 +447,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--workload",
-        choices=["energy", "bell", "vqe", "hamiltonian_elimination", "cache_reuse", "scaled_cache"],
+        choices=["energy", "bell", "vqe", "lih_cache", "hamiltonian_elimination", "cache_reuse", "scaled_cache"],
         default="energy",
-        help="Select workload: energy (default), bell (Quantum Eye), vqe stub, hamiltonian_elimination, cache_reuse, or scaled_cache",
+        help="Select workload: energy (default), bell (Quantum Eye), vqe stub, lih_cache (build cache from LiH), hamiltonian_elimination, cache_reuse, or scaled_cache",
     )
     parser.add_argument(
         "--shots-per-eval",
@@ -489,9 +489,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--vqe-estimator",
-        choices=["qe", "psqe", "psqe_fft", "baseline", "full_baseline"],
+        choices=["qe", "psqe", "psqe_fft", "baseline", "full_baseline", "qe_cached", "baseline_cached"],
         default="qe",
-        help="Energy estimator for VQE: qe/psqe/psqe_fft (adapter), baseline (diagonal), or full_baseline (grouped Pauli)",
+        help="Energy estimator for VQE: qe/psqe/psqe_fft (adapter), baseline (diagonal), full_baseline (grouped Pauli), or qe_cached/baseline_cached (cache-aware)",
     )
     parser.add_argument(
         "--noise-type",
@@ -522,12 +522,6 @@ def main() -> None:
         type=int,
         default=3,
         help="Number of coefficient variants per structure for elimination",
-    )
-    parser.add_argument(
-        "--cache-path",
-        type=Path,
-        default=None,
-        help="Path to constraint cache JSON for cache_reuse workload",
     )
     parser.add_argument(
         "--reuse-qubits",
@@ -565,6 +559,12 @@ def main() -> None:
         default=None,
         help="Validation shots for scaled_cache workload (default: elimination_shots/4)",
     )
+    parser.add_argument(
+        "--cache-path",
+        type=Path,
+        default=None,
+        help="Path to constraint cache JSON file (for VQE workload with cache-aware estimators)",
+    )
     args, extra = parser.parse_known_args()
 
     install_deps()
@@ -599,6 +599,11 @@ def main() -> None:
         for idx in range(args.runs):
             run_seed = args.seed + idx
             log(f"[run {idx}] seed={run_seed} (vqe) mode={args.mode}")
+            # Normalize cache path: convert to Path and resolve if provided
+            cache_path = None
+            if args.cache_path is not None:
+                cache_path = Path(args.cache_path).resolve()
+                log(f"[vqe] using cache_path: {cache_path}")
             res = run_vqe_lih(
                 mode=args.mode,
                 seed=run_seed,
@@ -611,6 +616,7 @@ def main() -> None:
                 estimator=args.vqe_estimator,
                 noise_type=args.noise_type,
                 noise_level=args.noise_level,
+                cache_path=cache_path,
             )
 
             energy_trace = res.extra.get("energy_trace", []) if isinstance(res.extra, dict) else []
@@ -640,6 +646,64 @@ def main() -> None:
             )
 
         summary = aggregate_runs(runs)
+    elif args.workload == "lih_cache":
+        from vqe_workload import build_lih_cache
+
+        log(f"[lih_cache] building cache from LiH (protocol={getattr(args, 'lih_cache_protocol', 'z')}, source={getattr(args, 'lih_cache_source', 'exact')})")
+        cache = build_lih_cache(
+            seed=args.seed,
+            shots=args.elimination_shots,  # Reuse elimination-shots for cache build shots
+            protocol=getattr(args, 'lih_cache_protocol', 'z'),
+            source=getattr(args, 'lih_cache_source', 'exact'),
+            vqe_theta=None,  # TODO: support VQE source if needed
+        )
+        cache_path = args.output_dir / f"lih_constraint_cache_seed{args.seed}.json"
+        cache.to_json(cache_path)
+        log(f"[lih_cache] wrote cache to {cache_path}")
+        log(f"[lih_cache] term_support: {len(cache.term_support)} terms")
+        log(f"[lih_cache] measurement_bounds: {len(cache.measurement_bounds)} bounds")
+        
+        # Create a minimal run result for consistency (skip CSV for lih_cache)
+        runs.append({
+            "metrics": {
+                "energy": None,
+                "reference_energy": None,
+                "energy_error": None,
+                "best_energy": None,
+                "best_energy_error": None,
+                "best_iteration": None,
+                "fidelity_to_reference": None,
+                "wall_clock_s": None,
+                "shots_used": args.elimination_shots,
+                "total_shots": args.elimination_shots,
+                "max_rss_mb": None,
+                "iterations": None,
+                "x_accuracy": None,
+                "y_accuracy": None,
+                "x_correlation": None,
+                "y_correlation": None,
+                "qsv_score": None,
+                "qsv_P": None,
+                "qsv_S": None,
+                "qsv_E": None,
+                "qsv_Q": None,
+                "success": True,
+            },
+            "config": {
+                "seed": args.seed,
+                "protocol": getattr(args, 'lih_cache_protocol', 'z'),
+                "source": getattr(args, 'lih_cache_source', 'exact'),
+                "shots": args.elimination_shots,
+                "cache_path": str(cache_path),
+                "cache_terms": len(cache.term_support),
+                "cache_bounds": len(cache.measurement_bounds),
+            },
+        })
+        summary = {
+            "cache_path": str(cache_path),
+            "term_support_size": len(cache.term_support),
+            "measurement_bounds_size": len(cache.measurement_bounds),
+        }
     elif args.workload == "bell":
         for idx in range(args.runs):
             run_seed = args.seed + idx
@@ -737,6 +801,10 @@ def main() -> None:
         cache_path = args.cache_path
         if cache_path is None:
             cache_path = args.output_dir / "constraint_cache.json"
+        else:
+            # Normalize path: convert to Path and resolve
+            cache_path = Path(cache_path).resolve()
+        log(f"[reuse] using cache_path: {cache_path}")
         reuse_res = run_cache_reuse_demo(
             cache_path=cache_path,
             seed=args.seed,
