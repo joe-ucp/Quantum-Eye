@@ -1204,6 +1204,19 @@ class QuantumEyeAdapter:
         # Convert counts to approximate statevector
         noisy_statevector = self._statevector_from_counts(counts, num_qubits)
         
+        # Check if statevector reconstruction failed (e.g., system too large)
+        if noisy_statevector is None:
+            logger.warning(f"Cannot reconstruct statevector for {num_qubits} qubits - system too large")
+            return {
+                "mitigated": False,
+                "mitigated_counts": counts,
+                "original_counts": counts,
+                "reference_label": reference_label,
+                "mitigation_method": "none_statevector_too_large",
+                "reason": f"Cannot reconstruct statevector for {num_qubits} qubits",
+                "improvement": 0.0
+            }
+        
         # Find best reference if not specified
         if reference_label is None:
             reference_label = self._find_best_reference_match(noisy_statevector)
@@ -1727,8 +1740,9 @@ class QuantumEyeAdapter:
             numpy.ndarray: Reconstructed statevector with real-valued amplitudes,
                         or None for large systems to avoid memory constraints
         """
-            # For large systems, DON'T build state vector!
-        if num_qubits > 6:  
+        # Check against configured threshold (default 6, but can be increased)
+        max_transform_qubits = self.config.get("max_transform_qubits", 6)
+        if num_qubits > max_transform_qubits:  
             return None  # Return None, work directly with counts
         total_shots = sum(counts.values())
         num_states = 2 ** num_qubits
