@@ -37,8 +37,6 @@ from tests.baseline_comparison import (
 from tests.observable_metrics import (
     compute_ideal_observables,
     compute_observable_error,
-    compare_methods,
-    compute_effective_shots,
     bitstring_to_eigenvalues,
     get_scaled_shots
 )
@@ -174,6 +172,11 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
     This is quantum-data-dependent inference, not classical post-processing alone,
     and fundamentally different from standard quantum state tomography.
     """
+    
+    @staticmethod
+    def _safe_mean(values):
+        """Compute mean of values, returning 0.0 for empty list to avoid NaN."""
+        return float(np.mean(values)) if values else 0.0
     
     @classmethod
     def setUpClass(cls):
@@ -734,6 +737,8 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
                                 j = int(parts[2])
                                 correlator_pairs.append((i, j))
                             except ValueError:
+                                # Ignore malformed correlator pair tokens (e.g., non-numeric indices)
+                                # This is safe - we only process valid "Z{i}Z{j}" format pairs
                                 pass
                 
                 # QE: Z-only measurements
@@ -893,8 +898,8 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
                 'total_tests': len(cls.all_results),
                 'results': cls.all_results,
                 'summary_metrics': {
-                    'average_qe_error': float(np.mean([r['aggregate_errors']['qe'] for r in cls.all_results if 'aggregate_errors' in r and 'qe' in r['aggregate_errors']])),
-                    'average_mb_error': float(np.mean([r['aggregate_errors']['mb'] for r in cls.all_results if 'aggregate_errors' in r and 'mb' in r['aggregate_errors']])),
+                    'average_qe_error': SingleBasisObservableRecoveryTest._safe_mean([r['aggregate_errors']['qe'] for r in cls.all_results if 'aggregate_errors' in r and 'qe' in r['aggregate_errors']]),
+                    'average_mb_error': SingleBasisObservableRecoveryTest._safe_mean([r['aggregate_errors']['mb'] for r in cls.all_results if 'aggregate_errors' in r and 'mb' in r['aggregate_errors']]),
                 }
             }
             

@@ -5,12 +5,10 @@ Generates clear, human-readable PNG visualizations from test result JSON files.
 """
 
 import json
-import os
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 
 
 def load_summary_report(results_dir: str) -> Dict[str, Any]:
@@ -244,7 +242,11 @@ def create_comprehensive_visualization(results_dir: str, output_path: Optional[s
             ax6.set_title('Scaling: QE/MB Ratio', fontsize=12, fontweight='bold')
             ax6.legend()
             ax6.grid(True, alpha=0.3)
-            ax6.set_ylim([0, max(1.2, max(ratios) * 1.1) if ratios else 1.2])
+            # Set y-axis limits with defensive check for empty ratios list
+            if ratios:
+                ax6.set_ylim([0, max(1.2, max(ratios) * 1.1)])
+            else:
+                ax6.set_ylim([0, 1.2])
     
     # 7. Observable Error Breakdown (bottom middle)
     ax7 = fig.add_subplot(gs[2, 1])

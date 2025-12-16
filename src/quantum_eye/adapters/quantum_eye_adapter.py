@@ -1727,8 +1727,8 @@ class QuantumEyeAdapter:
         only provide probability information.
         
         Memory considerations:
-        - Works well for small systems (≤6 qubits, 64 amplitudes)
-        - For larger systems (>6 qubits), consider returning None and working 
+        - Works well for small systems (up to configured max_transform_qubits threshold)
+        - For larger systems (exceeding threshold), returns None and works 
         directly with counts to avoid memory issues
         - Alternative: Use compressed representations for sparse states
         
