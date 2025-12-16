@@ -50,7 +50,7 @@ def multibasis_observable_estimation(
     noise_level: float,
     include_correlators: bool = True,
     correlator_pairs: Optional[List[Tuple[int, int]]] = None
-) -> Tuple[Dict[str, float], int]:
+) -> Tuple[Dict[str, float], int, Dict[str, float]]:
     """
     Multi-Basis baseline: measures Z, X, Y directly and estimates observables.
     
@@ -66,13 +66,19 @@ def multibasis_observable_estimation(
         correlator_pairs: List of (i, j) pairs for correlators (if None, auto-select)
         
     Returns:
-        Tuple of (observables dictionary, total shots used)
+        Tuple of (observables dictionary, total shots used, cost metrics dict)
+        Cost metrics includes: execution_time_s, circuit_executions
     """
+    import time
+    
     n_qubits = circuit.num_qubits
     observables = {}
     counts_by_basis = {}
     
-    # Measure in each basis
+    # Track execution time
+    start_time = time.perf_counter()
+    
+    # Measure in each basis (3 circuit executions)
     for basis in ['Z', 'X', 'Y']:
         basis_circuit = generate_basis_rotation_circuit(circuit, basis)
         
@@ -86,6 +92,8 @@ def multibasis_observable_estimation(
         )
         
         counts_by_basis[basis] = result['counts']
+    
+    execution_time = time.perf_counter() - start_time
     
     # Compute single-qubit observables from counts
     for q in range(n_qubits):
@@ -132,7 +140,15 @@ def multibasis_observable_estimation(
     
     total_shots = 3 * shots_per_basis
     
-    return observables, total_shots
+    # Cost metrics
+    cost_metrics = {
+        'execution_time_s': execution_time,
+        'circuit_executions': 3,  # MB requires 3 circuit runs (Z, X, Y)
+        'shots_per_execution': shots_per_basis,
+        'total_shots': total_shots
+    }
+    
+    return observables, total_shots, cost_metrics
 
 
 def build_mem_calibration_matrix(

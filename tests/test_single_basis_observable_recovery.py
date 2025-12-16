@@ -12,6 +12,7 @@ import unittest
 import os
 import sys
 import json
+import time
 import numpy as np
 from datetime import datetime
 from typing import Dict, Any, List, Tuple, Optional
@@ -216,10 +217,11 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
         # Compute ideal observables (truth reference)
         ideal_observables = compute_ideal_observables(circuit)
         
-        # Run Quantum Eye: Z-only measurements
+        # Run Quantum Eye: Z-only measurements (1 circuit execution)
         z_circuit = circuit.copy()
         z_circuit.measure_all()
         
+        qe_start = time.perf_counter()
         qe_result = self.adapter.execute_circuit(
             circuit=z_circuit,
             shots=shots,
@@ -227,6 +229,7 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
             noise_type=self.noise_type,
             noise_level=self.base_noise_level
         )
+        qe_execution_time = time.perf_counter() - qe_start
         
         # Extract mitigated state
         mitigation_result = qe_result.get('mitigation_result', {})
@@ -237,9 +240,17 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
         # Predict observables from mitigated state
         qe_observables = predict_observables_from_state(mitigated_state, n_qubits)
         
-        # Run Multi-Basis baseline: Z+X+Y measurements
+        # QE cost metrics
+        qe_cost = {
+            'execution_time_s': qe_execution_time,
+            'circuit_executions': 1,  # QE requires only 1 circuit run (Z-only)
+            'shots_per_execution': shots,
+            'total_shots': shots
+        }
+        
+        # Run Multi-Basis baseline: Z+X+Y measurements (3 circuit executions)
         shots_per_basis = shots // 3  # Equal total shots
-        mb_observables, mb_total_shots = multibasis_observable_estimation(
+        mb_observables, mb_total_shots, mb_cost = multibasis_observable_estimation(
             circuit, self.adapter, shots_per_basis, self.noise_type, self.base_noise_level
         )
         
@@ -285,7 +296,11 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
                 'mb': mb_total_shots,
                 'z_only': shots
             },
-            'basis_advantage_ratio': float(mb_agg_error / qe_agg_error) if qe_agg_error > 0 else float('inf')
+            'basis_advantage_ratio': float(mb_agg_error / qe_agg_error) if qe_agg_error > 0 else float('inf'),
+            'cost_metrics': {
+                'qe': qe_cost,
+                'mb': mb_cost
+            }
         }
         
         self.all_results.append(results)
@@ -369,9 +384,10 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
         circuit = generate_parameterized_circuit(n_qubits, depth, theta, seed=self.seed)
         ideal_observables = compute_ideal_observables(circuit)
         
-        # QE: Z-only
+        # QE: Z-only (1 circuit execution)
         z_circuit = circuit.copy()
         z_circuit.measure_all()
+        qe_start = time.perf_counter()
         qe_result = self.adapter.execute_circuit(
             circuit=z_circuit,
             shots=shots,
@@ -379,14 +395,21 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
             noise_type=self.noise_type,
             noise_level=self.base_noise_level
         )
+        qe_execution_time = time.perf_counter() - qe_start
+        qe_cost = {
+            'execution_time_s': qe_execution_time,
+            'circuit_executions': 1,
+            'shots_per_execution': shots,
+            'total_shots': shots
+        }
         
         mitigated_state = qe_result.get('mitigation_result', {}).get('mitigated_state')
         self.assertIsNotNone(mitigated_state)
         qe_observables = predict_observables_from_state(mitigated_state, n_qubits)
         
-        # Multi-Basis
+        # Multi-Basis (3 circuit executions)
         shots_per_basis = shots // 3
-        mb_observables, _ = multibasis_observable_estimation(
+        mb_observables, _, mb_cost = multibasis_observable_estimation(
             circuit, self.adapter, shots_per_basis, self.noise_type, self.base_noise_level
         )
         
@@ -435,9 +458,10 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
         circuit = generate_parameterized_circuit(n_qubits, depth, theta, seed=self.seed)
         ideal_observables = compute_ideal_observables(circuit)
         
-        # QE: Z-only
+        # QE: Z-only (1 circuit execution)
         z_circuit = circuit.copy()
         z_circuit.measure_all()
+        qe_start = time.perf_counter()
         qe_result = self.adapter.execute_circuit(
             circuit=z_circuit,
             shots=shots,
@@ -445,14 +469,21 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
             noise_type=self.noise_type,
             noise_level=self.base_noise_level
         )
+        qe_execution_time = time.perf_counter() - qe_start
+        qe_cost = {
+            'execution_time_s': qe_execution_time,
+            'circuit_executions': 1,
+            'shots_per_execution': shots,
+            'total_shots': shots
+        }
         
         mitigated_state = qe_result.get('mitigation_result', {}).get('mitigated_state')
         self.assertIsNotNone(mitigated_state)
         qe_observables = predict_observables_from_state(mitigated_state, n_qubits)
         
-        # Multi-Basis
+        # Multi-Basis (3 circuit executions)
         shots_per_basis = shots // 3
-        mb_observables, _ = multibasis_observable_estimation(
+        mb_observables, _, mb_cost = multibasis_observable_estimation(
             circuit, self.adapter, shots_per_basis, self.noise_type, self.base_noise_level
         )
         
@@ -542,9 +573,10 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
         circuit = generate_parameterized_circuit(n_qubits, depth, theta, seed=self.seed)
         ideal_observables = compute_ideal_observables(circuit)
         
-        # QE: Z-only at high noise
+        # QE: Z-only at high noise (1 circuit execution)
         z_circuit = circuit.copy()
         z_circuit.measure_all()
+        qe_start = time.perf_counter()
         qe_result = self.adapter.execute_circuit(
             circuit=z_circuit,
             shots=total_shots,
@@ -552,14 +584,21 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
             noise_type=self.noise_type,
             noise_level=high_noise
         )
+        qe_execution_time = time.perf_counter() - qe_start
+        qe_cost = {
+            'execution_time_s': qe_execution_time,
+            'circuit_executions': 1,
+            'shots_per_execution': total_shots,
+            'total_shots': total_shots
+        }
         
         mitigated_state = qe_result.get('mitigation_result', {}).get('mitigated_state')
         self.assertIsNotNone(mitigated_state, "QE should produce mitigated state even at high noise")
         qe_observables = predict_observables_from_state(mitigated_state, n_qubits)
         
-        # Multi-Basis: Equal total shots at high noise
+        # Multi-Basis: Equal total shots at high noise (3 circuit executions)
         shots_per_basis = total_shots // 3
-        mb_observables, mb_total_shots = multibasis_observable_estimation(
+        mb_observables, mb_total_shots, mb_cost = multibasis_observable_estimation(
             circuit, self.adapter, shots_per_basis, self.noise_type, high_noise
         )
         
@@ -583,7 +622,11 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
                 'mb': float(mb_agg)
             },
             'error_trust_ratio': float(qe_agg / mb_agg) if mb_agg > 0 else float('inf'),
-            'noise_advantage': f"QE maintains {qe_agg/mb_agg:.2%} of MB error at {high_noise*100:.0f}% noise"
+            'noise_advantage': f"QE maintains {qe_agg/mb_agg:.2%} of MB error at {high_noise*100:.0f}% noise",
+            'cost_metrics': {
+                'qe': qe_cost,
+                'mb': mb_cost
+            }
         }
         
         self.all_results.append(results)
@@ -621,9 +664,10 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
         circuit = generate_parameterized_circuit(n_qubits, depth, theta, seed=self.seed)
         ideal_observables = compute_ideal_observables(circuit)
         
-        # QE: All shots in Z-only
+        # QE: All shots in Z-only (1 circuit execution)
         z_circuit = circuit.copy()
         z_circuit.measure_all()
+        qe_start = time.perf_counter()
         qe_result = self.adapter.execute_circuit(
             circuit=z_circuit,
             shots=total_shots,
@@ -631,14 +675,21 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
             noise_type=self.noise_type,
             noise_level=self.base_noise_level
         )
+        qe_execution_time = time.perf_counter() - qe_start
+        qe_cost = {
+            'execution_time_s': qe_execution_time,
+            'circuit_executions': 1,
+            'shots_per_execution': total_shots,
+            'total_shots': total_shots
+        }
         
         mitigated_state = qe_result.get('mitigation_result', {}).get('mitigated_state')
         self.assertIsNotNone(mitigated_state)
         qe_observables = predict_observables_from_state(mitigated_state, n_qubits)
         
-        # Multi-Basis: Equal total shots (1000 per basis)
+        # Multi-Basis: Equal total shots (1000 per basis, 3 circuit executions)
         shots_per_basis = total_shots // 3
-        mb_observables, mb_total_shots = multibasis_observable_estimation(
+        mb_observables, mb_total_shots, mb_cost = multibasis_observable_estimation(
             circuit, self.adapter, shots_per_basis, self.noise_type, self.base_noise_level
         )
         
@@ -667,7 +718,11 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
             },
             'basis_counts': {'qe': 1, 'mb': 3},
             'basis_advantage_ratio': float(qe_agg / mb_agg) if mb_agg > 0 else float('inf'),
-            'basis_efficiency': f"QE uses {1} basis vs MB uses {3} bases (3x fewer bases)"
+            'basis_efficiency': f"QE uses {1} basis vs MB uses {3} bases (3x fewer bases)",
+            'cost_metrics': {
+                'qe': qe_cost,
+                'mb': mb_cost
+            }
         }
         
         self.all_results.append(results)
@@ -703,14 +758,14 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
         ideal_observables = compute_ideal_observables(circuit)
         
         # MB with 1000 shots per basis (3000 total)
-        mb1_observables, mb1_shots = multibasis_observable_estimation(
+        mb1_observables, mb1_shots, _ = multibasis_observable_estimation(
             circuit, self.adapter, 1000, self.noise_type, self.base_noise_level
         )
         mb1_errors = compute_observable_error(mb1_observables, ideal_observables)
         mb1_agg = np.mean(list(mb1_errors.values()))
         
         # MB with 3000 shots per basis (9000 total)
-        mb2_observables, mb2_shots = multibasis_observable_estimation(
+        mb2_observables, mb2_shots, _ = multibasis_observable_estimation(
             circuit, self.adapter, 3000, self.noise_type, self.base_noise_level
         )
         mb2_errors = compute_observable_error(mb2_observables, ideal_observables)
@@ -767,9 +822,10 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
                                 # This is safe - we only process valid "Z{i}Z{j}" format pairs
                                 pass
                 
-                # QE: Z-only measurements
+                # QE: Z-only measurements (1 circuit execution)
                 z_circuit = circuit.copy()
                 z_circuit.measure_all()
+                qe_start = time.perf_counter()
                 qe_result = self.adapter.execute_circuit(
                     circuit=z_circuit,
                     shots=total_shots,
@@ -777,6 +833,7 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
                     noise_type=self.noise_type,
                     noise_level=self.base_noise_level
                 )
+                qe_execution_time = time.perf_counter() - qe_start
                 
                 mitigated_state = qe_result.get('mitigation_result', {}).get('mitigated_state')
                 if mitigated_state is None:
@@ -785,7 +842,7 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
                     print(f"Warning: QE mitigation failed for {n_qubits} qubits (no reference states), skipping QE")
                     # Still compute MB baseline for comparison
                     shots_per_basis = total_shots // 3
-                    mb_observables, mb_total_shots = multibasis_observable_estimation(
+                    mb_observables, mb_total_shots, mb_cost = multibasis_observable_estimation(
                         circuit, self.adapter, shots_per_basis,
                         self.noise_type, self.base_noise_level,
                         include_correlators=True,
@@ -800,10 +857,20 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
                         'total_shots': total_shots,
                         'qe_failed': True,
                         'mb_aggregate_error': float(mb_agg),
-                        'note': 'QE mitigation failed (likely needs reference states for larger systems)'
+                        'note': 'QE mitigation failed (likely needs reference states for larger systems)',
+                        'cost_metrics': {
+                            'mb': mb_cost
+                        }
                     }
                     scaling_results.append(result)
                     continue
+                
+                qe_cost = {
+                    'execution_time_s': qe_execution_time,
+                    'circuit_executions': 1,
+                    'shots_per_execution': total_shots,
+                    'total_shots': total_shots
+                }
                 
                 qe_observables = predict_observables_from_state(
                     mitigated_state, n_qubits,
@@ -811,9 +878,9 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
                     correlator_pairs=correlator_pairs if correlator_pairs else None
                 )
                 
-                # Multi-Basis: Equal total shots
+                # Multi-Basis: Equal total shots (3 circuit executions)
                 shots_per_basis = total_shots // 3
-                mb_observables, mb_total_shots = multibasis_observable_estimation(
+                mb_observables, mb_total_shots, mb_cost = multibasis_observable_estimation(
                     circuit, self.adapter, shots_per_basis,
                     self.noise_type, self.base_noise_level,
                     include_correlators=True,
@@ -838,7 +905,11 @@ class SingleBasisObservableRecoveryTest(unittest.TestCase):
                     'mb_aggregate_error': float(mb_agg),
                     'qe_mb_ratio': float(qe_agg / mb_agg) if mb_agg > 0 else float('inf'),
                     'basis_counts': {'qe': 1, 'mb': 3},
-                    'num_observables': len(ideal_observables)
+                    'num_observables': len(ideal_observables),
+                    'cost_metrics': {
+                        'qe': qe_cost,
+                        'mb': mb_cost
+                    }
                 }
                 scaling_results.append(result)
                 

@@ -221,32 +221,53 @@ def create_comprehensive_visualization(results_dir: str, output_path: Optional[s
     ax5.text(0.1, 0.5, metrics_text, fontsize=11, va='center',
             family='monospace', bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.3))
     
-    # 6. Scaling Test - Ratio Plot (bottom left)
+    # 6. Cost Comparison: Circuit Executions (bottom left)
     ax6 = fig.add_subplot(gs[2, 0])
     if scaling_data and 'results' in scaling_data:
         qubit_counts = []
-        ratios = []
+        qe_executions = []
+        mb_executions = []
+        qe_times = []
+        mb_times = []
         
         for result in scaling_data['results']:
             n_qubits = result.get('n_qubits')
             if n_qubits is not None and not result.get('qe_failed', False):
+                cost_metrics = result.get('cost_metrics', {})
+                qe_cost = cost_metrics.get('qe', {})
+                mb_cost = cost_metrics.get('mb', {})
+                
                 qubit_counts.append(n_qubits)
-                ratio = result.get('qe_mb_ratio', 1.0)
-                ratios.append(ratio)
+                qe_executions.append(qe_cost.get('circuit_executions', 1))
+                mb_executions.append(mb_cost.get('circuit_executions', 3))
+                qe_times.append(qe_cost.get('execution_time_s', 0))
+                mb_times.append(mb_cost.get('execution_time_s', 0))
         
         if qubit_counts:
-            ax6.plot(qubit_counts, ratios, 'o-', color='#3498db', linewidth=2, markersize=8)
-            ax6.axhline(y=1.0, color='r', linestyle='--', alpha=0.5, label='Equal Performance')
+            x = np.arange(len(qubit_counts))
+            width = 0.35
+            
+            # Plot circuit executions
+            ax6.bar(x - width/2, qe_executions, width, label='QE (1 exec)', color='#2ecc71', alpha=0.8)
+            ax6.bar(x + width/2, mb_executions, width, label='MB (3 execs)', color='#e74c3c', alpha=0.8)
+            
             ax6.set_xlabel('Number of Qubits', fontsize=11)
-            ax6.set_ylabel('QE/MB Error Ratio', fontsize=11)
-            ax6.set_title('Scaling: QE/MB Ratio', fontsize=12, fontweight='bold')
+            ax6.set_ylabel('Circuit Executions', fontsize=11)
+            ax6.set_title('Cost Comparison: Circuit Executions', fontsize=12, fontweight='bold')
+            ax6.set_xticks(x)
+            ax6.set_xticklabels(qubit_counts)
             ax6.legend()
-            ax6.grid(True, alpha=0.3)
-            # Set y-axis limits with defensive check for empty ratios list
-            if ratios:
-                ax6.set_ylim([0, max(1.2, max(ratios) * 1.1)])
-            else:
-                ax6.set_ylim([0, 1.2])
+            ax6.grid(True, alpha=0.3, axis='y')
+            
+            # Add text annotation showing cost advantage
+            if qe_executions and mb_executions:
+                avg_qe_exec = np.mean(qe_executions)
+                avg_mb_exec = np.mean(mb_executions)
+                cost_savings = (1 - avg_qe_exec / avg_mb_exec) * 100
+                ax6.text(0.5, 0.95, f'QE uses {cost_savings:.0f}% fewer\ncircuit executions',
+                        transform=ax6.transAxes, ha='center', va='top',
+                        bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.7),
+                        fontsize=10, fontweight='bold')
     
     # 7. Observable Error Breakdown (bottom middle)
     ax7 = fig.add_subplot(gs[2, 1])
