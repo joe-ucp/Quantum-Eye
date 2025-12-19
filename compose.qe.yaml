@@ -8,9 +8,11 @@ services:
       - FFSIM_PIP_EXTRA
       - PYTHONPATH=/home/jovyan/qe-runner:/home/jovyan/persistent-volume:/home/jovyan/work
     volumes:
-      - ./ffsim/persistent-volume:/home/jovyan/persistent-volume
-      - ./adapters:/home/jovyan/work/adapters
-      - ./qe-runner:/home/jovyan/qe-runner
+      # NOTE: docker compose resolves relative paths from the *first* compose file's directory
+      # (here: `ffsim/compose.yaml`), so these are intentionally relative to `Quantum-Eye/ffsim/`.
+      - ./persistent-volume:/home/jovyan/persistent-volume
+      - ../adapters:/home/jovyan/work/adapters
+      - ../qe-runner:/home/jovyan/qe-runner
     entrypoint: ["python", "/home/jovyan/qe-runner/run_experiment.py"]
     command: []
 

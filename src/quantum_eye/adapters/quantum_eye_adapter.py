@@ -1162,6 +1162,26 @@ class QuantumEyeAdapter:
             logger.error(f"Error monitoring job: {str(e)}")
             raise
     
+    def _measured_width_from_counts(self, counts: Dict[str, int]) -> int:
+        """
+        Determine the number of measured qubits from counts dictionary keys.
+        
+        This is the source of truth for qubit count in mitigation, not circuit.num_qubits
+        (which may be expanded to full backend size after transpilation).
+        
+        Args:
+            counts: Measurement counts dictionary
+            
+        Returns:
+            Number of qubits actually measured
+        """
+        if not counts:
+            return 0
+        k = next(iter(counts.keys()))
+        # Strip spaces if backend returns "0 1 0" style
+        k = k.replace(" ", "")
+        return len(k)
+    
     def _apply_mitigation_to_counts(
         self, 
         counts: Dict[str, int], 
@@ -1181,8 +1201,10 @@ class QuantumEyeAdapter:
         Returns:
             Dictionary with mitigation results
         """
-        # Enforce memory constraints based on circuit size
-        num_qubits = circuit.num_qubits
+        # Enforce memory constraints based on measured qubit count (not circuit size)
+        # Circuit may be expanded to full backend size after transpilation, but
+        # counts reflect only the measured qubits
+        num_qubits = self._measured_width_from_counts(counts)
         max_full_transform_qubits = self.config.get("max_transform_qubits", 6)
         
         if num_qubits > max_full_transform_qubits:

@@ -737,7 +737,7 @@ class UCPIdentity:
         # Create density matrix
         density_matrix = np.outer(state_vector, np.conjugate(state_vector))
         
-        # Calculate single-qubit expectations
+        # Calculate Pauli expectations
         expectations = {}
         
         for i in range(n_qubits):
@@ -755,6 +755,29 @@ class UCPIdentity:
             expectations[f"X_{i}"] = float(exp_x)
             expectations[f"Y_{i}"] = float(exp_y)
             expectations[f"Z_{i}"] = float(exp_z)
+
+        # Add 2-qubit ZZ correlators. This is a minimal, high-signal invariant that
+        # distinguishes e.g. |Phi+> (ZZ=+1) from |Psi+> (ZZ=-1) while remaining
+        # counts-compatible (it corresponds to signed parity in Z basis).
+        if n_qubits >= 2:
+            sigma_z = np.array([[1, 0], [0, -1]], dtype=complex)
+            identity = np.eye(2, dtype=complex)
+
+            def zz_operator(i: int, j: int) -> np.ndarray:
+                full_op = None
+                for q in range(n_qubits):
+                    if q == i or q == j:
+                        factor = sigma_z
+                    else:
+                        factor = identity
+                    full_op = factor if full_op is None else np.kron(full_op, factor)
+                return full_op
+
+            for i in range(n_qubits):
+                for j in range(i + 1, n_qubits):
+                    op_zz = zz_operator(i, j)
+                    exp_zz = np.real(np.trace(op_zz @ density_matrix))
+                    expectations[f"ZZ_{i}_{j}"] = float(exp_zz)
         
         return expectations
     
@@ -1296,15 +1319,104 @@ class UCPIdentity:
         
         # P: Phase coherence from measurement patterns
         P = self._calculate_P_from_distribution(counts, total, num_qubits)
-        
-        # S: Computational closure from outcome spread  
+
+        # S: Computational closure from outcome spread
         S = self._calculate_S_from_IPR(counts, total, num_qubits)
-        
+
         # E: Information from entropy of distribution
         E = self._calculate_E_from_entropy(counts, total, num_qubits)
-        
+
         # Q: Unity from correlation patterns
         Q = self._calculate_Q_from_correlations(counts, num_qubits)
+
+        # --------------------------------------------------------------------
+        # IMPORTANT: Contract compatibility with UcpFrequencyTransform.transform()
+        #
+        # The frequency transformer expects the same four *_metrics blocks that
+        # `phi(state)` produces:
+        #   - phase_coherence_metrics
+        #   - state_distribution_metrics
+        #   - entropic_measures_metrics
+        #   - entanglement_metrics
+        #
+        # Historically this counts-path returned only the QSV scalars, which
+        # caused transform() to collapse to an all-zero full_transform.
+        #
+        # For small systems, we can build a proxy sqrt(p) statevector and reuse
+        # the same metric extractors to satisfy the transform contract.
+        # For large systems, we return minimal proxy metric dicts (finite, shaped
+        # as expected) to keep the downstream pipeline live without allocating a
+        # 2**n statevector.
+        # --------------------------------------------------------------------
+        max_counts_statevector_qubits = self.config.get("max_counts_statevector_qubits", 12)
+        if num_qubits <= max_counts_statevector_qubits:
+            # Build proxy sqrt(p) statevector (real amplitudes) from counts
+            state_vector = np.zeros(2**num_qubits, dtype=complex)
+            for bitstring, count in counts.items():
+                # normalize bitstring length defensively
+                bitstring = str(bitstring).zfill(num_qubits)
+                idx = int(bitstring, 2)
+                prob = count / total
+                state_vector[idx] = np.sqrt(prob)
+            # Normalize (numerical safety)
+            norm = np.linalg.norm(state_vector)
+            if norm > 0:
+                state_vector = state_vector / norm
+
+            phase_coherence_metrics = self.extract_phase_coherence_metrics(state_vector)
+            state_distribution_metrics = self.extract_state_distribution_metrics(state_vector)
+            entropic_measures_metrics = self.extract_entropic_measures_metrics(state_vector)
+            entanglement_metrics = self.extract_entanglement_metrics(state_vector)
+
+            # Apply component weight adjustments if configured (match phi())
+            if self.config.get('use_optimap_weights', True):
+                self._apply_improved_weights([
+                    phase_coherence_metrics,
+                    state_distribution_metrics,
+                    entropic_measures_metrics,
+                    entanglement_metrics
+                ])
+            else:
+                for component in [
+                    phase_coherence_metrics,
+                    state_distribution_metrics,
+                    entropic_measures_metrics,
+                    entanglement_metrics
+                ]:
+                    component["weight"] = 0.25
+        else:
+            # Large-system proxy metrics (finite values, expected keys).
+            # These are intentionally minimal: enough structure for the transformer
+            # to produce a non-degenerate signature without statevector allocation.
+            phase_coherence_metrics = {
+                "phase_coherence": float(P),
+                "phase_variance": float(max(0.0, 1.0 - P)),
+                "phase_coherence_structure": float(P),
+                "phase_relationships": [],
+                "superposition_degree": int(max(1, len(counts))),
+                "amplitude_entropy": float(E),
+                "global_phase": 0.0,
+                "n_qubits": int(num_qubits),
+                "weight": 0.25,
+            }
+            state_distribution_metrics = {
+                "ipr_metric": float(S),
+                "operator_balance": 0.0,
+                "operator_expectations": {},
+                "weight": 0.25,
+            }
+            entropic_measures_metrics = {
+                "von_neumann_entropy": float(E) * float(num_qubits),
+                "normalized_entropy": float(E),
+                "entanglement_entropy": float(min(E, Q)),
+                "weight": 0.25,
+            }
+            entanglement_metrics = {
+                "entanglement_metric": float(Q),
+                "entanglement_spectrum": [],
+                "entanglement_uniformity": float(Q),
+                "weight": 0.25,
+            }
         
         # QSV check using the fundamental P×S×E×Q > 0 principle
         qsv_score = P * S * E * Q
@@ -1312,16 +1424,20 @@ class UCPIdentity:
         qsv_valid = qsv_score > qsv_threshold
         
         return {
+            "phase_coherence_metrics": phase_coherence_metrics,
+            "state_distribution_metrics": state_distribution_metrics,
+            "entropic_measures_metrics": entropic_measures_metrics,
+            "entanglement_metrics": entanglement_metrics,
             "quantum_signature": {"P": float(P), "S": float(S), "E": float(E), "Q": float(Q)},
             "qsv": {
                 "score": float(qsv_score),
                 "valid": qsv_valid,
                 "confidence": min(1.0, qsv_score / (qsv_threshold * 1000)) if qsv_valid else 0.0,
-                "interpretation": self._interpret_qsv_score(qsv_score, qsv_threshold)
+                "interpretation": self._interpret_qsv_score(qsv_score, qsv_threshold),
             },
             "method": "counts_direct",
             "num_measurements": total,
-            "num_unique_states": len(counts)
+            "num_unique_states": len(counts),
         }
 
     def _calculate_P_from_distribution(self, counts, total, num_qubits):

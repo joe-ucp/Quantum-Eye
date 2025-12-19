@@ -934,10 +934,11 @@ class UcpFrequencyTransform:
         if not operator_expectations:
             return operator_array
         
-        # Extract X, Y, Z expectations for each qubit
+        # Extract X, Y, Z expectations for each qubit + optional ZZ correlators
         x_expectations = []
         y_expectations = []
         z_expectations = []
+        zz_expectations = []  # tuples: (i, j, value)
         
         for key, value in operator_expectations.items():
             if key.startswith('X_'):
@@ -957,6 +958,15 @@ class UcpFrequencyTransform:
                     qubit_idx = int(key.split('_')[1])
                     z_expectations.append((qubit_idx, value))
                 except (ValueError, IndexError):
+                    continue
+            elif key.startswith('ZZ_'):
+                # Expected formats: "ZZ_i_j"
+                try:
+                    parts = key.split('_')
+                    i = int(parts[1])
+                    j = int(parts[2])
+                    zz_expectations.append((i, j, float(value)))
+                except (ValueError, IndexError, TypeError):
                     continue
         
         # Sort by qubit index
@@ -982,11 +992,12 @@ class UcpFrequencyTransform:
         while len(z_values) < n_qubits:
             z_values.append(0.0)
         
-        # Create grid sections for X, Y, Z values
+        # Create grid sections for X, Y, Z values (and optional ZZ correlators)
         grid_size = max(1, int(np.ceil(np.sqrt(n_qubits))))
         x_grid = np.zeros((grid_size, grid_size))
         y_grid = np.zeros((grid_size, grid_size))
         z_grid = np.zeros((grid_size, grid_size))
+        zz_grid = np.zeros((grid_size, grid_size))
         
         # Fill in the grids with bounds checking
         for i, (x, y, z) in enumerate(zip(x_values, y_values, z_values)):
@@ -996,20 +1007,37 @@ class UcpFrequencyTransform:
                 x_grid[row, col] = x
                 y_grid[row, col] = y
                 z_grid[row, col] = z
+
+        # Encode ZZ correlators into a symmetric grid (only if provided).
+        # This preserves the existing X/Y/Z layout while adding one extra band.
+        if zz_expectations:
+            for i, j, v in zz_expectations:
+                if i < grid_size and j < grid_size:
+                    zz_grid[i, j] = v
+                    zz_grid[j, i] = v
         
-        # Place the grids in the operator array
-        # Divide the array into 3 sections for X, Y, Z
-        h_third = max(1, self.resolution // 3)
-        
-        # Resize grids to fit their sections
-        x_grid_resized = self._resize_array(x_grid, (h_third, self.resolution))
-        y_grid_resized = self._resize_array(y_grid, (h_third, self.resolution))
-        z_grid_resized = self._resize_array(z_grid, (h_third, self.resolution))
-        
-        # Place in the operator array with bounds checking
-        operator_array[:h_third, :] = x_grid_resized
-        operator_array[h_third:min(2*h_third, self.resolution), :] = y_grid_resized
-        operator_array[min(2*h_third, self.resolution):min(3*h_third, self.resolution), :] = z_grid_resized
+        # Place the grids in the operator array.
+        # Default layout: 3 bands (X/Y/Z). If ZZ exists, use 4 bands (X/Y/Z/ZZ).
+        if zz_expectations:
+            h = max(1, self.resolution // 4)
+            x_grid_resized = self._resize_array(x_grid, (h, self.resolution))
+            y_grid_resized = self._resize_array(y_grid, (h, self.resolution))
+            z_grid_resized = self._resize_array(z_grid, (h, self.resolution))
+            zz_grid_resized = self._resize_array(zz_grid, (h, self.resolution))
+
+            operator_array[:h, :] = x_grid_resized
+            operator_array[h:min(2*h, self.resolution), :] = y_grid_resized
+            operator_array[min(2*h, self.resolution):min(3*h, self.resolution), :] = z_grid_resized
+            operator_array[min(3*h, self.resolution):min(4*h, self.resolution), :] = zz_grid_resized
+        else:
+            h_third = max(1, self.resolution // 3)
+            x_grid_resized = self._resize_array(x_grid, (h_third, self.resolution))
+            y_grid_resized = self._resize_array(y_grid, (h_third, self.resolution))
+            z_grid_resized = self._resize_array(z_grid, (h_third, self.resolution))
+
+            operator_array[:h_third, :] = x_grid_resized
+            operator_array[h_third:min(2*h_third, self.resolution), :] = y_grid_resized
+            operator_array[min(2*h_third, self.resolution):min(3*h_third, self.resolution), :] = z_grid_resized
         
         return operator_array
         
